@@ -76,7 +76,7 @@ pre_filtersDeletePersonal = {
 
   -- Aquí pongo todos los mails que quiero cargarme directamente.. 
   --
-  { header = "From", p = "<un emisor que quiero ignorar durante una temporada..." },
+  { header = "From", p = "<un emisor que quiero ignorar durante una temporada...>" },
 
 }
 
