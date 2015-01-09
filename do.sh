@@ -1,7 +1,13 @@
 #!/bin/bash
 #
-# Punto de entrada para el servicio imapfilter
+# Punto de entrada para el servicio "imapfilter" by Luispa, Jan 2015
 #
+# Enlaces sobre este proyecto: 
+#
+# Sitio en GitHub         : https://github.com/LuisPalacios/base-imapfilter
+# Automatización con FIG  : https://github.com/LuisPalacios/servicio-correo
+# Apunte técnico          : http://www.luispa.com/?p=961
+# 
 # Activar el debug de este script:
 # set -eux
 
@@ -24,7 +30,7 @@
 : ${IMAPFILTER_INSTANCIAS:="cuenta"}
 
 #  El nombre de los items identifica el nombre de los ficheros de
-#  configuración, así para una variable con dos items:
+#  configuración. Ejemplo, para una variable con dos items:
 #
 #  IMAPFILTER_INSTANCIAS="cuentaPersonal, cuentaTrabajo"
 #
@@ -33,16 +39,18 @@
 #  /root/.imapfilter/config-cuentaPersonal.lua
 #  /root/.imapfilter/config-cuentaTrabajo.lua
 #
-# El comando siguiente traspasa al array INSTANCI[] el contenido
+# El comando siguiente traspasa al array INSTANCIA[] el contenido
 # de la variable IMAPFILTER_INSTANCIAS
 #
-#   ${!INSTANCIA[@]} - Número de instancias
-#   ${INSTANCIA[n]} - Contenido en la posición 'n' dentro del array
+# Ejemplos de uso:
+#   ${#INSTANCIA[@]} - Número de instancias
+#   ${INSTANCIA[n]}  - Contenido en la posición 'n' dentro del array
 #
+# Recibo los items en "INSTANCIA"
 INSTANCIA=(${IMAPFILTER_INSTANCIAS//,/ })
-
 echo "IMAPFILTER_INSTANCIAS=\"${IMAPFILTER_INSTANCIAS}\""
 echo "Número de instancias a ejecutar: ${#INSTANCIA[@]}"
+
 
 ##################################################################
 #
@@ -50,7 +58,6 @@ echo "Número de instancias a ejecutar: ${#INSTANCIA[@]}"
 #
 ##################################################################
 	
-
 ############
 # Permisos
 ############
@@ -62,63 +69,57 @@ chmod go-rwx /root/.imapfilter/config*.lua
 chown root:root /root/.imapfilter/config*.lua
 
 
-############
-# Programación
-############
+#########################
+# Programación (obsoleto)
+#########################
 #
-# Utilizo cron para programar que cada 'n' minutos se ejecute imapfilter, 
-# En mi ejemplo lo hago cada 3 minutos, algo agresivo, lo normal sería 
-# hacerlo cada 5 o 10 minutos.
+# Lo utilicé al principio aunque ahora ya no uso esta técnica, es
+# otra alternativa, en vez de dejar imapfilter en un loop infinito
+# se puede ejecutar in-and-out, es decir, se ejecuta y termina 
+# cuando nos interesa invocarlo. 
 #
-#cat > /root/instala-en-cron.txt <<-EOF_CRON_INSTALA
+# Si tu fichero config*.lua trabaja en ese modo dejo aquí estas 
+# líneas a modo de ejemplo, cómo configurar cron en el contenedor: 
 #
-#MAILTO=""
-#5,10,15,20,25,30,35,40,45,50,55,0 * * * * [ \`pidof imapfilter\` ] || imapfilter > /dev/null 2>&1
-#
-#EOF_CRON_INSTALA
-#crontab /root/instala-en-cron.txt
+## cat > /root/instala-en-cron.txt <<-EOF_CRON_INSTALA
+## 
+## MAILTO=""
+## 5,10,15,20,25,30,35,40,45,50,55,0 * * * * [ \`pidof imapfilter\` ] || imapfilter > /dev/null 2>&1
+##
+## EOF_CRON_INSTALA
+## crontab /root/instala-en-cron.txt
 
 
-############
-# Supervisor
-############
-
+#############
+# Supervisord
+#############
 cat > /etc/supervisor/conf.d/supervisord.conf <<-EOF_SUPERVISOR
 
 [unix_http_server]
-file=/var/run/supervisor.sock 					; path to your socket file
+file=/var/run/supervisor.sock 					; Path al fichero socket
 
 [inet_http_server]
-port = 0.0.0.0:9001								; allow to connect from web browser to supervisord
+port = 0.0.0.0:9001								; Permitir la conexión desde el browser
 
 [supervisord]
-logfile=/var/log/supervisor/supervisord.log 	; supervisord log file
-logfile_maxbytes=10MB 							; maximum size of logfile before rotation
-logfile_backups=2 								; number of backed up logfiles
+logfile=/var/log/supervisor/supervisord.log 	; Fichero de log
+logfile_maxbytes=10MB 							; Tamaño máximo del log antes de rotarlo
+logfile_backups=2 								; Número de logfiles que se guardan
 loglevel=error 									; info, debug, warn, trace
-pidfile=/var/run/supervisord.pid 				; pidfile location
-minfds=1024 									; number of startup file descriptors
-minprocs=200 									; number of process descriptors
-user=root 										; default user
-childlogdir=/var/log/supervisor/ 				; where child log files will live
+pidfile=/var/run/supervisord.pid 				; localización del pidfile
+minfds=1024 									; número de startup file descriptors
+minprocs=200 									; número de process descriptors
+user=root 										; usuario por defecto
+childlogdir=/var/log/supervisor/ 				; dónde vivirán los logs de los childs
 
-nodaemon=false 									; run supervisord as a daemon when debugging
-;nodaemon=true 									; run supervisord interactively (production)
+nodaemon=false 									; Ejecutar supervisord como un daemon (util para debugging)
+;nodaemon=true 									; Ejecutar supervisord interactivo (producción)
 	
 [rpcinterface:supervisor]
 supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
 
 [supervisorctl]
-serverurl=unix:///var/run/supervisor.sock		; use a unix:// URL for a unix socket 
-
-#
-# DESCOMENTAR PARA DEBUG o SI QUIERES SSHD
-#
-#[program:sshd]
-#process_name = sshd
-#command=/usr/sbin/sshd -D
-#startsecs = 0
-#autorestart = true
+serverurl=unix:///var/run/supervisor.sock		; Usar URL unix:// para un socket unix
 
 EOF_SUPERVISOR
 
@@ -149,7 +150,9 @@ do
 	fi
 done
 echo "============"
-## Servidor:Puerto por el que conectar con el servidor MYSQL
+
+## Si no hay ningún fichero de configuración... para que "ejecutarme" ???
+#
 #
 if [ "${HAY_INSTANCIA}" = "0" ]; then
 	echo >&2 "error: No existe ningún fichero de configuración, debe crear al menos uno para que pueda funcionar". 
@@ -161,8 +164,11 @@ fi
 # rsyslogd 
 ############
 
-## Servidor:Puerto por el que escucha el agregador de Logs (fluentd)
+# En el caso de desear que RSYSLOGD arranque y además envíe logs a un 
+# agregador, entonces hay que configurar la variable FLUENTD_LINK
 #
+# Ejemplo: -e FLUENTD_LINK="tuagregador.tld.org:24224"
+#  
 if [ ! -z "${FLUENTD_LINK}" ]; then
 	
 	# Averiguo Host y Puerto del agregador

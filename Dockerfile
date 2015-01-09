@@ -1,9 +1,15 @@
 #
-# "imapfilter" base by Luispa, Dec 2014
+# "imapfilter" by Luispa, Jan 2015
 # 
 # Un contenedor muy sencillo que solo va a dedicarse a 
 # hacer limpieza de correos con el programa imapfilter
 #
+# Enlaces sobre este proyecto: 
+#
+# Sitio en GitHub         : https://github.com/LuisPalacios/base-imapfilter
+# Automatización con FIG  : https://github.com/LuisPalacios/servicio-correo
+# Apunte técnico          : http://www.luispa.com/?p=961
+# 
 # -----------------------------------------------------
 
 #
@@ -44,38 +50,27 @@ ENV HOME /root
 # Instalo imapfilter desde los fuentes
 # ------- ------- ------- ------- ------- ------- -------
 #
-# Imapfilter queda instalado en /usr/local/bin
-#
+# Instalo las librerías de desarrollo necesarias
 RUN apt-get update && \
 	apt-get -y install	make			\
 						git				\
 						liblua5.2-dev	\
     					libssl-dev		\
     					libpcre3-dev
+
+# Descargo y compilo los fuentes
+# Imapfilter queda instalado en /usr/local/bin
 WORKDIR /root
-
 RUN git clone https://github.com/lefcha/imapfilter.git
-
 RUN cd /root/imapfilter && make INCDIRS=-I/usr/include/lua5.2 LIBLUA=-llua5.2 && make install
 
-# ------- ------- ------- ------- ------- ------- -------
-# DEBUG ( Descomentar durante debug del contenedor )
-# ------- ------- ------- ------- ------- ------- -------
-#
-# Herramientas SSH, tcpdump y net-tools
-#RUN apt-get update && \
-#    apt-get -y install 	openssh-server \
-#                       	tcpdump \
-#                        net-tools
-## Setup de SSHD
-#RUN mkdir /var/run/sshd
-#RUN echo 'root:docker' | chpasswd
-#RUN sed -i 's/PermitRootLogin without-password/PermitRootLogin yes/' /etc/ssh/sshd_config
-#RUN sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
-#ENV NOTVISIBLE "in users profile"
-#RUN echo "export VISIBLE=now" >> /etc/profile
+# Nota: Este contenedor ejecutará un script cada vez que arranque
+# donde se espera encontrar los ficheros de configuración en /root/.imapfilter
+# Ver do.sh en https://github.com/LuisPalacios/base-imapfilter
 
-## Script que uso a menudo durante las pruebas. Es como "cat" pero elimina líneas de comentarios
+# Script "confcat"
+# Durante el desarrollo de mis contenedores suelo usarlo mucho, así que siempre lo 
+# dejo instalado. Es como "cat" pero elimina líneas de comentarios
 RUN echo "grep -vh '^[[:space:]]*#' \"\$@\" | grep -v '^//' | grep -v '^;' | grep -v '^\$' | grep -v '^\!' | grep -v '^--'" > /usr/bin/confcat
 RUN chmod 755 /usr/bin/confcat
 
