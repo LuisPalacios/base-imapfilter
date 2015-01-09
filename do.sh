@@ -179,7 +179,7 @@ if [ ! -z "${FLUENTD_LINK}" ]; then
 	echo "Configuro rsyslog.conf"
 	cat > /etc/rsyslog.conf <<-EOF_RSYSLOG
 	
-	\$LocalHostName chatarrero
+	\$LocalHostName imapfilter
 	\$ModLoad imuxsock # provides support for local system logging
 	#\$ModLoad imklog   # provides kernel logging support
 	#\$ModLoad immark  # provides --MARK-- message capability
